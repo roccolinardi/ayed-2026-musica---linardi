@@ -47,13 +47,23 @@ Catálogo (canciones.csv)
 
 | Operación | Tiempo | Espacio | Por qué |
 | --- | --- | --- | --- |
-|  |  |  |  |
+| `busqueda_lineal` | `O(n)` | `O(1)` | En el peor caso recorre los `n` elementos uno por uno hasta el final (o no lo encuentra). Solo usa variables auxiliares constantes. |
+| `busqueda_binaria` | `O(log n)` | `O(1)` | Requiere la colección ordenada y descarta la mitad del rango en cada iteración (`izq`, `der`, `medio`). Implementación iterativa sin pila de llamadas. |
+| `ordenar_seleccion` | `O(n^2)` | `O(n)` | Dos ciclos anidados que realizan `n*(n-1)/2` comparaciones siempre (mejor, promedio y peor caso). Copia la colección en una lista nueva para no mutar la original. |
+| `ordenar_insercion` | `O(n^2)` (mejor caso `O(n)`) | `O(n)` | En el peor caso (orden inverso) desplaza hasta `i` elementos por iteración; si ya está ordenada solo hace una comparación por elemento. Copia la colección para no mutar la original. |
+| `Pila.apilar` / `desapilar` / `ver_tope` | `O(1)` | `O(1)` | Opera siempre sobre `_cabeza` de `ListaEnlazada` sin recorrer nodos. |
+| `Cola.encolar` / `desencolar` / `ver_frente` | `O(1)` | `O(1)` | `encolar` usa el puntero `_cola` y `desencolar`/`ver_frente` usan `_cabeza`, evitando recorridos. |
+| `ListaEnlazada.insertar_ordenado` / `eliminar` / `buscar` | `O(n)` | `O(1)` | En el peor caso recorre la lista completa hasta el último nodo. |
+| `cadena_hasta_original` (recursiva) | `O(k)` | `O(k)` | Siendo `k` la longitud de la cadena de versiones (`k <= n`): hace una consulta `O(1)` en diccionario por paso y guarda `k` marcos en la pila de llamadas y en `visitados`. |
 
 Mediciones (`time.perf_counter`):
 
 | Operación | n | segundos |
 | --- | --- | --- |
-|  |  |  |
+| busqueda_lineal (id=62) | 67 | 0.000003 |
+| busqueda_binaria (id=62) | 67 | 0.000006 |
+| ordenar_seleccion (titulo) | 67 | 0.000487 |
+| ordenar_insercion (titulo) | 67 | 0.000203 |
 
 ## 6. Persistencia (E5)
 

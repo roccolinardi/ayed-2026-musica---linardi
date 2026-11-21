@@ -5,6 +5,8 @@ from src.algoritmos.recursion import (
     cadena_hasta_original,
     versiones_derivadas,
 )
+from src.algoritmos.busqueda import busqueda_lineal, busqueda_binaria
+from src.algoritmos.ordenamiento import ordenar_seleccion, ordenar_insercion
 from src.tads.lista_enlazada import ListaEnlazada
 from src.tads.pila import Pila
 from src.tads.cola import Cola
@@ -48,10 +50,7 @@ def cargar_catalogo_csv() -> list[dict]:
 
 def buscar_por_id(catalogo: list[dict], id_buscado: int) -> dict | None:
     """Devuelve el diccionario de la canción con ese ID, o None si no existe."""
-    for c in catalogo:
-        if c["id"] == id_buscado:
-            return c
-    return None
+    return busqueda_lineal(catalogo, id_buscado, lambda c: c["id"])
 
 
 def pedir_cancion_por_id(catalogo: list[dict]) -> dict | None:
@@ -66,14 +65,19 @@ def pedir_cancion_por_id(catalogo: list[dict]) -> dict | None:
     return cancion
 
 
-def listar_catalogo(catalogo: list[dict]) -> None:
-    """Muestra todas las canciones del catálogo en formato tabla."""
-    print(f"\n--- Catálogo: {TEMAS[TEMA]} ({len(catalogo)} canciones) ---")
+def mostrar_tabla_canciones(canciones: list[dict], titulo_tabla: str) -> None:
+    """Muestra una lista de canciones en formato tabla."""
+    print(f"\n--- {titulo_tabla} ({len(canciones)} canciones) ---")
     print(f"{'ID':>3} | {'Título':<32} | {'Artista':<24} | {'Año':>4} | {'Dur.':>5}")
     print("-" * 80)
-    for c in catalogo:
+    for c in canciones:
         dur = formatear_duracion(c["duracion_seg"])
         print(f"{c['id']:>3} | {c['titulo'][:32]:<32} | {c['artista'][:24]:<24} | {c['anio']:>4} | {dur:>5}")
+
+
+def listar_catalogo(catalogo: list[dict]) -> None:
+    """Muestra todas las canciones del catálogo en formato tabla."""
+    mostrar_tabla_canciones(catalogo, f"Catálogo: {TEMAS[TEMA]}")
 
 
 def ver_detalle(catalogo: list[dict]) -> None:
@@ -90,6 +94,80 @@ def ver_detalle(catalogo: list[dict]) -> None:
     print(f"Género:   {c['genero']}")
     print(f"Año:      {c['anio']}")
     print(f"Duración: {formatear_duracion(c['duracion_seg'])} ({c['duracion_seg']} seg)")
+
+
+def menu_buscar(catalogo: list[dict]) -> None:
+    """Opción 3 (E4): búsqueda lineal y búsqueda binaria."""
+    print("\n--- Buscar canción ---")
+    print("1. Búsqueda lineal por título exacto")
+    print("2. Búsqueda binaria por ID (ordena primero por ID)")
+    print("3. Búsqueda binaria por título exacto (ordena primero por título)")
+    print("0. Volver")
+    op = input("> ").strip()
+
+    if op == "0":
+        return
+    elif op == "1":
+        titulo = input("Ingresá el título exacto: ").strip().lower()
+        res = busqueda_lineal(catalogo, titulo, lambda c: c["titulo"].lower())
+    elif op == "2":
+        entrada = input("Ingresá el ID: ").strip()
+        if not entrada.isdigit():
+            print("Error: tenés que ingresar un número entero.")
+            return
+        ordenado = ordenar_insercion(catalogo, lambda c: c["id"])
+        res = busqueda_binaria(ordenado, int(entrada), lambda c: c["id"])
+    elif op == "3":
+        titulo = input("Ingresá el título exacto: ").strip().lower()
+        ordenado = ordenar_insercion(catalogo, lambda c: c["titulo"].lower())
+        res = busqueda_binaria(ordenado, titulo, lambda c: c["titulo"].lower())
+    else:
+        print("Opción inválida.")
+        return
+
+    if res is None:
+        print("No se encontró ninguna coincidencia.")
+    else:
+        print(f"Encontrada: [{res['id']}] {res['titulo']} - {res['artista']} ({res['anio']}, {formatear_duracion(res['duracion_seg'])})")
+
+
+def menu_ordenar(catalogo: list[dict]) -> None:
+    """Opción 4 (E4): ordenamiento por selección e inserción."""
+    print("\n--- Ordenar catálogo ---")
+    print("Algoritmo:")
+    print("1. Selección (ordenar_seleccion)")
+    print("2. Inserción (ordenar_insercion)")
+    alg = input("> ").strip()
+    if alg not in {"1", "2"}:
+        print("Opción inválida.")
+        return
+
+    print("\nCriterio:")
+    print("1. Título (A-Z)")
+    print("2. Artista (A-Z)")
+    print("3. Año (ascendente)")
+    print("4. Duración (ascendente)")
+    crit = input("> ").strip()
+
+    criterios = {
+        "1": ("Título", lambda c: c["titulo"].lower()),
+        "2": ("Artista", lambda c: c["artista"].lower()),
+        "3": ("Año", lambda c: c["anio"]),
+        "4": ("Duración", lambda c: c["duracion_seg"]),
+    }
+    if crit not in criterios:
+        print("Opción inválida.")
+        return
+
+    nombre_crit, fn_clave = criterios[crit]
+    if alg == "1":
+        ordenado = ordenar_seleccion(catalogo, fn_clave)
+        nombre_alg = "Selección"
+    else:
+        ordenado = ordenar_insercion(catalogo, fn_clave)
+        nombre_alg = "Inserción"
+
+    mostrar_tabla_canciones(ordenado, f"Catálogo ordenado por {nombre_crit} ({nombre_alg})")
 
 
 def ver_cadena_versiones(catalogo: list[dict], versiones: dict[int, tuple[int, str]]) -> None:
@@ -287,6 +365,10 @@ def main():
             listar_catalogo(catalogo)
         elif opcion == "2":
             ver_detalle(catalogo)
+        elif opcion == "3":
+            menu_buscar(catalogo)
+        elif opcion == "4":
+            menu_ordenar(catalogo)
         elif opcion == "5":
             ver_cadena_versiones(catalogo, versiones)
         elif opcion == "6":
@@ -295,7 +377,7 @@ def main():
             menu_historial(catalogo, historial)
         elif opcion == "8":
             menu_cola(catalogo, cola, historial)
-        elif opcion in {"3", "4", "9"}:
+        elif opcion == "9":
             pendiente()
         else:
             print("Opción inválida.")
