@@ -5,6 +5,14 @@ from src.algoritmos.recursion import (
     cadena_hasta_original,
     versiones_derivadas,
 )
+from src.tads.lista_enlazada import ListaEnlazada
+from src.tads.pila import Pila
+from src.tads.cola import Cola
+from src.excepciones import (
+    ItemNoEncontradoError,
+    PilaVaciaError,
+    ColaVaciaError,
+)
 
 TEMAS = {
     "pokedex": "Pokédex",
@@ -46,6 +54,18 @@ def buscar_por_id(catalogo: list[dict], id_buscado: int) -> dict | None:
     return None
 
 
+def pedir_cancion_por_id(catalogo: list[dict]) -> dict | None:
+    """Pide un ID por consola, valida que sea entero y devuelve la canción o None."""
+    entrada = input("Ingresá el ID de la canción: ").strip()
+    if not entrada.isdigit():
+        print("Error: tenés que ingresar un número entero.")
+        return None
+    cancion = buscar_por_id(catalogo, int(entrada))
+    if cancion is None:
+        print(f"No se encontró ninguna canción con ID {entrada}.")
+    return cancion
+
+
 def listar_catalogo(catalogo: list[dict]) -> None:
     """Muestra todas las canciones del catálogo en formato tabla."""
     print(f"\n--- Catálogo: {TEMAS[TEMA]} ({len(catalogo)} canciones) ---")
@@ -58,14 +78,8 @@ def listar_catalogo(catalogo: list[dict]) -> None:
 
 def ver_detalle(catalogo: list[dict]) -> None:
     """Pide un ID por consola y muestra todos los datos de esa canción."""
-    entrada = input("Ingresá el ID de la canción: ").strip()
-    if not entrada.isdigit():
-        print("Error: tenés que ingresar un número entero.")
-        return
-
-    c = buscar_por_id(catalogo, int(entrada))
+    c = pedir_cancion_por_id(catalogo)
     if c is None:
-        print(f"No se encontró ninguna canción con ID {entrada}.")
         return
 
     print("\n--- Detalle de la canción ---")
@@ -110,6 +124,128 @@ def ver_cadena_versiones(catalogo: list[dict], versiones: dict[int, tuple[int, s
         print("\nNo tiene versiones derivadas registradas en versiones.csv.")
 
 
+def menu_playlist(catalogo: list[dict], playlist: ListaEnlazada) -> None:
+    """Opción 6 (E3): gestión de playlist sobre ListaEnlazada."""
+    while True:
+        print(f"\n--- Playlist ({playlist.tamanio()} canciones) ---")
+        print("1. Ver playlist")
+        print("2. Agregar canción al final")
+        print("3. Agregar canción ordenada por título")
+        print("4. Quitar canción por ID")
+        print("0. Volver")
+        op = input("> ").strip()
+
+        if op == "0":
+            break
+        elif op == "1":
+            if playlist.esta_vacia():
+                print("La playlist está vacía.")
+            else:
+                for i, c in enumerate(playlist, start=1):
+                    print(f"  {i}. [{c['id']}] {c['titulo']} - {c['artista']} ({formatear_duracion(c['duracion_seg'])})")
+        elif op == "2":
+            c = pedir_cancion_por_id(catalogo)
+            if c is not None:
+                playlist.insertar_al_final(c)
+                print(f"Agregada al final: {c['titulo']}")
+        elif op == "3":
+            c = pedir_cancion_por_id(catalogo)
+            if c is not None:
+                playlist.insertar_ordenado(c, clave=lambda x: x["titulo"].lower())
+                print(f"Agregada ordenada por título: {c['titulo']}")
+        elif op == "4":
+            c = pedir_cancion_por_id(catalogo)
+            if c is not None:
+                try:
+                    playlist.eliminar(c)
+                    print(f"Eliminada de la playlist: {c['titulo']}")
+                except ItemNoEncontradoError:
+                    print("Esa canción no está en la playlist.")
+        else:
+            print("Opción inválida.")
+
+
+def menu_historial(catalogo: list[dict], historial: Pila) -> None:
+    """Opción 7 (E3): historial de reproducción sobre Pila (LIFO)."""
+    while True:
+        print(f"\n--- Historial de reproducción - Pila ({historial.tamanio()} canciones) ---")
+        print("1. Ver historial completo (más reciente primero)")
+        print("2. Ver última canción escuchada (tope)")
+        print("3. Registrar reproducción manual (apilar)")
+        print("4. Quitar última reproducción (desapilar)")
+        print("0. Volver")
+        op = input("> ").strip()
+
+        if op == "0":
+            break
+        elif op == "1":
+            if historial.esta_vacia():
+                print("El historial está vacío.")
+            else:
+                for i, c in enumerate(historial, start=1):
+                    print(f"  {i}. [{c['id']}] {c['titulo']} - {c['artista']}")
+        elif op == "2":
+            try:
+                c = historial.ver_tope()
+                print(f"Última escuchada: [{c['id']}] {c['titulo']} - {c['artista']}")
+            except PilaVaciaError:
+                print("El historial está vacío.")
+        elif op == "3":
+            c = pedir_cancion_por_id(catalogo)
+            if c is not None:
+                historial.apilar(c)
+                print(f"Registrada en historial: {c['titulo']}")
+        elif op == "4":
+            try:
+                c = historial.desapilar()
+                print(f"Se quitó del historial: [{c['id']}] {c['titulo']}")
+            except PilaVaciaError:
+                print("El historial está vacío.")
+        else:
+            print("Opción inválida.")
+
+
+def menu_cola(catalogo: list[dict], cola: Cola, historial: Pila) -> None:
+    """Opción 8 (E3): cola de reproducción sobre Cola (FIFO)."""
+    while True:
+        print(f"\n--- Cola de reproducción ({cola.tamanio()} pendientes) ---")
+        print("1. Ver cola")
+        print("2. Agregar canción a la cola (encolar)")
+        print("3. Ver próxima canción (frente)")
+        print("4. Reproducir siguiente (desencolar y pasar al historial)")
+        print("0. Volver")
+        op = input("> ").strip()
+
+        if op == "0":
+            break
+        elif op == "1":
+            if cola.esta_vacia():
+                print("La cola de reproducción está vacía.")
+            else:
+                for i, c in enumerate(cola, start=1):
+                    print(f"  {i}. [{c['id']}] {c['titulo']} - {c['artista']}")
+        elif op == "2":
+            c = pedir_cancion_por_id(catalogo)
+            if c is not None:
+                cola.encolar(c)
+                print(f"Encolada: {c['titulo']}")
+        elif op == "3":
+            try:
+                c = cola.ver_frente()
+                print(f"Próxima a reproducir: [{c['id']}] {c['titulo']} - {c['artista']}")
+            except ColaVaciaError:
+                print("La cola de reproducción está vacía.")
+        elif op == "4":
+            try:
+                c = cola.desencolar()
+                historial.apilar(c)
+                print(f"Reproduciendo ahora: [{c['id']}] {c['titulo']} - {c['artista']} (guardada en historial)")
+            except ColaVaciaError:
+                print("La cola de reproducción está vacía.")
+        else:
+            print("Opción inválida.")
+
+
 def pendiente():
     print("Todavía no está implementado. Completar en la entrega que corresponde.")
 
@@ -137,6 +273,9 @@ def main():
 
     catalogo = cargar_catalogo_csv()
     versiones = cargar_versiones_csv(RUTA_VERSIONES_CSV)
+    playlist = ListaEnlazada()
+    historial = Pila()
+    cola = Cola()
 
     opcion = None
     while opcion != "0":
@@ -150,7 +289,13 @@ def main():
             ver_detalle(catalogo)
         elif opcion == "5":
             ver_cadena_versiones(catalogo, versiones)
-        elif opcion in {"3", "4", "6", "7", "8", "9"}:
+        elif opcion == "6":
+            menu_playlist(catalogo, playlist)
+        elif opcion == "7":
+            menu_historial(catalogo, historial)
+        elif opcion == "8":
+            menu_cola(catalogo, cola, historial)
+        elif opcion in {"3", "4", "9"}:
             pendiente()
         else:
             print("Opción inválida.")

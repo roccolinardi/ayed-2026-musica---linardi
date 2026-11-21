@@ -37,11 +37,11 @@ Catálogo (canciones.csv)
 
 | TAD | Operaciones | Invariante |
 | --- | --- | --- |
-| ListaEnlazada |  |  |
-| Pila |  |  |
-| Cola |  |  |
+| ListaEnlazada | `esta_vacia`, `tamanio`, `ver_primero`, `insertar_al_inicio`, `insertar_al_final`, `insertar_ordenado`, `eliminar_al_inicio`, `eliminar`, `buscar`, `__iter__` | `_tamanio` coincide siempre con la cantidad de nodos alcanzables desde `_cabeza`; si `_tamanio == 0`, `_cabeza` y `_cola` son `None`; si no, `_cola.siguiente` es `None`. No usa `list` de Python por debajo. |
+| Pila | `apilar`, `desapilar`, `ver_tope`, `esta_vacia`, `tamanio`, `__iter__` | Política LIFO (último en entrar, primero en salir) implementada sobre `ListaEnlazada` operando siempre en la cabeza en $O(1)$. Lanza `PilaVaciaError` al desapilar o ver tope estando vacía. |
+| Cola | `encolar`, `desencolar`, `ver_frente`, `esta_vacia`, `tamanio`, `__iter__` | Política FIFO (primero en entrar, primero en salir) implementada sobre `ListaEnlazada` encolando al final y desencolando al inicio en $O(1)$. Lanza `ColaVaciaError` al desencolar o ver frente estando vacía. |
 
-Dónde se usa cada uno en el dominio.
+- **Uso en el dominio:** `ListaEnlazada` gestiona la **playlist** (permite agregar al final, insertar ordenado por título y eliminar por ID); `Pila` lleva el **historial de reproducción** (la última canción escuchada queda en el tope); `Cola` administra la **cola de reproducción** (se reproducen en el orden en que fueron encoladas y pasan automáticamente al historial).
 
 ## 5. Complejidad (E4)
 
