@@ -67,9 +67,16 @@ Mediciones (`time.perf_counter`):
 
 ## 6. Persistencia (E5)
 
-- Layout del registro binario (campos, `struct`, anchos):
-- Header:
-- Cómo se actualiza un registro por posición:
+- **Layout del registro binario (campos, `struct`, anchos):** formato `<I64s48s48s24sHH` (little-endian, **192 bytes** fijos por canción):
+  - `id`: `I` (unsigned int, 4 bytes)
+  - `titulo`: `64s` (UTF-8 con padding nulo, 64 bytes)
+  - `artista`: `48s` (UTF-8 con padding nulo, 48 bytes)
+  - `album`: `48s` (UTF-8 con padding nulo, 48 bytes)
+  - `genero`: `24s` (UTF-8 con padding nulo, 24 bytes)
+  - `anio`: `H` (unsigned short, 2 bytes)
+  - `duracion_seg`: `H` (unsigned short, 2 bytes)
+- **Header:** formato `<4s1sI` (**9 bytes**): `magia` (`4s` = `b'AYED'`), `tema` (`1s` = `b'M'` para Biblioteca musical) y `cantidad` (`I` = cantidad de registros almacenados).
+- **Cómo se actualiza un registro por posición:** se abre el archivo en modo `r+b`, se lee y valida el header (magia, tema y que `0 <= posicion < cantidad`), se calcula el desplazamiento directo `offset = 9 + posicion * 192`, se mueve el puntero con `archivo.seek(offset)` y se sobrescriben exactamente los 192 bytes del nuevo registro en tiempo `O(1)` sin reescribir el resto del archivo.
 
 ## 7. Reparto de trabajo (E6)
 

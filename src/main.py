@@ -1,4 +1,4 @@
-import csv
+from pathlib import Path
 from src.config import RUTA_CANCIONES_CSV, RUTA_VERSIONES_CSV, TEMA
 from src.algoritmos.recursion import (
     cargar_versiones_csv,
@@ -10,6 +10,12 @@ from src.algoritmos.ordenamiento import ordenar_seleccion, ordenar_insercion
 from src.tads.lista_enlazada import ListaEnlazada
 from src.tads.pila import Pila
 from src.tads.cola import Cola
+from src.persistencia.texto import cargar_csv, guardar_csv
+from src.persistencia.binario import (
+    guardar_binario,
+    cargar_binario,
+    actualizar_registro,
+)
 from src.excepciones import (
     ItemNoEncontradoError,
     PilaVaciaError,
@@ -22,6 +28,12 @@ TEMAS = {
     "musica": "Biblioteca musical",
 }
 
+ENCABEZADOS_CSV = ["id", "titulo", "artista", "album", "genero", "anio", "duracion_seg"]
+CARPETA_DATA = Path(RUTA_CANCIONES_CSV).parent
+RUTA_BINARIO = CARPETA_DATA / "catalogo.bin"
+RUTA_EXPORT_CSV = CARPETA_DATA / "catalogo_export.csv"
+RUTA_PLAYLIST_CSV = CARPETA_DATA / "playlist.csv"
+
 
 def formatear_duracion(segundos: int) -> str:
     """Convierte segundos a formato mm:ss."""
@@ -31,20 +43,19 @@ def formatear_duracion(segundos: int) -> str:
 
 
 def cargar_catalogo_csv() -> list[dict]:
-    """Lee canciones.csv y devuelve una lista de diccionarios."""
+    """Lee canciones.csv usando persistencia.texto y convierte tipos numéricos."""
+    filas = cargar_csv(RUTA_CANCIONES_CSV)
     catalogo = []
-    with open(RUTA_CANCIONES_CSV, mode="r", encoding="utf-8", newline="") as archivo:
-        lector = csv.DictReader(archivo)
-        for fila in lector:
-            catalogo.append({
-                "id": int(fila["id"]),
-                "titulo": fila["titulo"].strip(),
-                "artista": fila["artista"].strip(),
-                "album": fila["album"].strip(),
-                "genero": fila["genero"].strip(),
-                "anio": int(fila["anio"]),
-                "duracion_seg": int(fila["duracion_seg"]),
-            })
+    for fila in filas:
+        catalogo.append({
+            "id": int(fila["id"]),
+            "titulo": fila["titulo"].strip(),
+            "artista": fila["artista"].strip(),
+            "album": fila["album"].strip(),
+            "genero": fila["genero"].strip(),
+            "anio": int(fila["anio"]),
+            "duracion_seg": int(fila["duracion_seg"]),
+        })
     return catalogo
 
 
@@ -324,8 +335,64 @@ def menu_cola(catalogo: list[dict], cola: Cola, historial: Pila) -> None:
             print("Opción inválida.")
 
 
-def pendiente():
-    print("Todavía no está implementado. Completar en la entrega que corresponde.")
+def menu_persistencia(catalogo: list[dict], playlist: ListaEnlazada) -> list[dict]:
+    """Opción 9 (E5): persistencia en CSV y binario con acceso directo."""
+    while True:
+        print("\n--- Guardar / cargar archivos (E5) ---")
+        print(f"1. Guardar catálogo en binario ({RUTA_BINARIO.name})")
+        print(f"2. Cargar catálogo desde binario ({RUTA_BINARIO.name})")
+        print("3. Actualizar registro por posición en binario (acceso directo)")
+        print(f"4. Exportar catálogo a CSV ({RUTA_EXPORT_CSV.name})")
+        print(f"5. Exportar playlist actual a CSV ({RUTA_PLAYLIST_CSV.name})")
+        print("0. Volver")
+        op = input("> ").strip()
+
+        if op == "0":
+            break
+        elif op == "1":
+            guardar_binario(RUTA_BINARIO, catalogo)
+            print(f"Catálogo guardado en {RUTA_BINARIO} ({len(catalogo)} registros).")
+        elif op == "2":
+            try:
+                catalogo = cargar_binario(RUTA_BINARIO)
+                print(f"Catálogo cargado desde {RUTA_BINARIO} ({len(catalogo)} registros).")
+            except (FileNotFoundError, ValueError) as err:
+                print(f"Error al cargar binario: {err}")
+        elif op == "3":
+            if not RUTA_BINARIO.exists():
+                print("Primero guardá el catálogo en binario (opción 1).")
+                continue
+            pos_str = input(f"Ingresá la posición 0-based (0 a {len(catalogo) - 1}): ").strip()
+            if not pos_str.isdigit():
+                print("Error: ingresá un número entero no negativo.")
+                continue
+            pos = int(pos_str)
+            if pos < 0 or pos >= len(catalogo):
+                print("Posición fuera de rango.")
+                continue
+            actual = dict(catalogo[pos])
+            print(f"Registro actual en [{pos}]: [{actual['id']}] {actual['titulo']} - {actual['artista']} ({actual['anio']})")
+            nuevo_titulo = input("Nuevo título (Enter para dejar igual): ").strip()
+            if nuevo_titulo:
+                actual["titulo"] = nuevo_titulo
+            try:
+                actualizar_registro(RUTA_BINARIO, pos, actual)
+                catalogo[pos] = actual
+                print(f"Registro en posición {pos} actualizado directamente en {RUTA_BINARIO}.")
+            except (FileNotFoundError, ValueError, IndexError) as err:
+                print(f"Error al actualizar registro: {err}")
+        elif op == "4":
+            guardar_csv(RUTA_EXPORT_CSV, catalogo, ENCABEZADOS_CSV)
+            print(f"Catálogo exportado a {RUTA_EXPORT_CSV}.")
+        elif op == "5":
+            if playlist.esta_vacia():
+                print("La playlist está vacía, no hay nada para exportar.")
+            else:
+                guardar_csv(RUTA_PLAYLIST_CSV, list(playlist), ENCABEZADOS_CSV)
+                print(f"Playlist exportada a {RUTA_PLAYLIST_CSV} ({playlist.tamanio()} canciones).")
+        else:
+            print("Opción inválida.")
+    return catalogo
 
 
 def mostrar_menu():
@@ -378,7 +445,7 @@ def main():
         elif opcion == "8":
             menu_cola(catalogo, cola, historial)
         elif opcion == "9":
-            pendiente()
+            catalogo = menu_persistencia(catalogo, playlist)
         else:
             print("Opción inválida.")
 
