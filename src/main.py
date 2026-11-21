@@ -1,5 +1,10 @@
 import csv
-from src.config import RUTA_CANCIONES_CSV, TEMA
+from src.config import RUTA_CANCIONES_CSV, RUTA_VERSIONES_CSV, TEMA
+from src.algoritmos.recursion import (
+    cargar_versiones_csv,
+    cadena_hasta_original,
+    versiones_derivadas,
+)
 
 TEMAS = {
     "pokedex": "Pokédex",
@@ -33,6 +38,14 @@ def cargar_catalogo_csv() -> list[dict]:
     return catalogo
 
 
+def buscar_por_id(catalogo: list[dict], id_buscado: int) -> dict | None:
+    """Devuelve el diccionario de la canción con ese ID, o None si no existe."""
+    for c in catalogo:
+        if c["id"] == id_buscado:
+            return c
+    return None
+
+
 def listar_catalogo(catalogo: list[dict]) -> None:
     """Muestra todas las canciones del catálogo en formato tabla."""
     print(f"\n--- Catálogo: {TEMAS[TEMA]} ({len(catalogo)} canciones) ---")
@@ -50,20 +63,51 @@ def ver_detalle(catalogo: list[dict]) -> None:
         print("Error: tenés que ingresar un número entero.")
         return
 
-    id_buscado = int(entrada)
-    for c in catalogo:
-        if c["id"] == id_buscado:
-            print("\n--- Detalle de la canción ---")
-            print(f"ID:       {c['id']}")
-            print(f"Título:   {c['titulo']}")
-            print(f"Artista:  {c['artista']}")
-            print(f"Álbum:    {c['album']}")
-            print(f"Género:   {c['genero']}")
-            print(f"Año:      {c['anio']}")
-            print(f"Duración: {formatear_duracion(c['duracion_seg'])} ({c['duracion_seg']} seg)")
-            return
+    c = buscar_por_id(catalogo, int(entrada))
+    if c is None:
+        print(f"No se encontró ninguna canción con ID {entrada}.")
+        return
 
-    print(f"No se encontró ninguna canción con ID {id_buscado}.")
+    print("\n--- Detalle de la canción ---")
+    print(f"ID:       {c['id']}")
+    print(f"Título:   {c['titulo']}")
+    print(f"Artista:  {c['artista']}")
+    print(f"Álbum:    {c['album']}")
+    print(f"Género:   {c['genero']}")
+    print(f"Año:      {c['anio']}")
+    print(f"Duración: {formatear_duracion(c['duracion_seg'])} ({c['duracion_seg']} seg)")
+
+
+def ver_cadena_versiones(catalogo: list[dict], versiones: dict[int, tuple[int, str]]) -> None:
+    """Opción 5 (E2): muestra la cadena recursiva hacia la original y versiones derivadas."""
+    entrada = input("Ingresá el ID de la canción (ej: 62, 13, 1): ").strip()
+    if not entrada.isdigit():
+        print("Error: tenés que ingresar un número entero.")
+        return
+
+    id_buscado = int(entrada)
+    cancion = buscar_por_id(catalogo, id_buscado)
+    if cancion is None:
+        print(f"No se encontró ninguna canción con ID {id_buscado}.")
+        return
+
+    print(f"\n--- Cadena de versiones (recursiva) para [{id_buscado}] {cancion['titulo']} ---")
+    cadena = cadena_hasta_original(id_buscado, versiones)
+    for idx, (cid, tipo) in enumerate(cadena):
+        c = buscar_por_id(catalogo, cid)
+        nombre = f"{c['titulo']} - {c['artista']}" if c else f"ID {cid}"
+        prefijo = "  └─► " if idx > 0 else "  ● "
+        print(f"{prefijo}[{cid}] {nombre} ({tipo})")
+
+    derivadas = versiones_derivadas(id_buscado, versiones)
+    if derivadas:
+        print("\nVersiones derivadas de esta canción:")
+        for cid, tipo in derivadas:
+            c = buscar_por_id(catalogo, cid)
+            nombre = f"{c['titulo']} - {c['artista']}" if c else f"ID {cid}"
+            print(f"  - [{cid}] {nombre} ({tipo})")
+    else:
+        print("\nNo tiene versiones derivadas registradas en versiones.csv.")
 
 
 def pendiente():
@@ -92,6 +136,7 @@ def main():
         return
 
     catalogo = cargar_catalogo_csv()
+    versiones = cargar_versiones_csv(RUTA_VERSIONES_CSV)
 
     opcion = None
     while opcion != "0":
@@ -103,7 +148,9 @@ def main():
             listar_catalogo(catalogo)
         elif opcion == "2":
             ver_detalle(catalogo)
-        elif opcion in {"3", "4", "5", "6", "7", "8", "9"}:
+        elif opcion == "5":
+            ver_cadena_versiones(catalogo, versiones)
+        elif opcion in {"3", "4", "6", "7", "8", "9"}:
             pendiente()
         else:
             print("Opción inválida.")

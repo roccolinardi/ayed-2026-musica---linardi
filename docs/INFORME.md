@@ -25,10 +25,13 @@ Catálogo (canciones.csv)
 
 ## 3. Recursión (E2)
 
-- Función:
-- Caso base:
-- Caso recursivo:
-- Traza de un ejemplo real del dataset:
+- Función: `cadena_hasta_original(cancion_id, versiones, visitados)` en `src/algoritmos/recursion.py` (complementada con `versiones_derivadas` para recorrer en sentido inverso).
+- Caso base: cuando `cancion_id` no figura como clave en `versiones` (significa que es la canción original) o ya está en el conjunto `visitados` (corta posibles ciclos). Devuelve `[(cancion_id, "original")]`.
+- Caso recursivo: agrega `cancion_id` a `visitados`, obtiene `(version_de_id, tipo)` desde `versiones[cancion_id]` y devuelve `[(cancion_id, tipo)] + cadena_hasta_original(version_de_id, versiones, visitados)`.
+- Traza de un ejemplo real del dataset (`id = 62`, *De Musica Ligera (Unplugged)*):
+  1. `cadena_hasta_original(62, versiones, set())` → `62` está en `versiones` (`(1, "live")`). Agrega `62` a `visitados` y llama a `cadena_hasta_original(1, versiones, {62})`.
+  2. `cadena_hasta_original(1, versiones, {62})` → `1` no está en `versiones` (caso base). Devuelve `[(1, "original")]`.
+  3. Retorno: `[(62, "live")] + [(1, "original")]` = `[(62, "live"), (1, "original")]`.
 
 ## 4. TADs (E3)
 
