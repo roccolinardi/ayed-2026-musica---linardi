@@ -82,4 +82,4 @@ Mediciones (`time.perf_counter`):
 
 | Integrante | Qué hizo | Qué puede defender |
 | --- | --- | --- |
-|  |  |  |
+| Rocco Mateo Linardi | Trabajo individual: configuración del repositorio, carga CSV y CLI (E1), recursión sobre versiones (E2), TADs `ListaEnlazada`, `Pila` y `Cola` (E3), búsqueda, ordenamiento y análisis de complejidad con mediciones (E4), persistencia CSV y binaria con `struct` y acceso directo (E5), protocolo de pruebas y documentación final (E6). | Todo el proyecto: arquitectura, TADs, algoritmos, complejidad, persistencia binaria y pruebas manuales. |
